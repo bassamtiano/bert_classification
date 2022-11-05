@@ -101,7 +101,7 @@ class PreprocessorToxic(pl.LightningDataModule):
         valid_len = len(train_valid_dataset) - round(len(train_valid_dataset) * 0.9)
 
         train_dataset, valid_dataset = torch.utils.data.random_split(
-            tensor_dataset, [
+            train_valid_dataset, [
                 train_len, valid_len
             ]
         )
