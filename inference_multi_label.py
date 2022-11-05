@@ -3,7 +3,7 @@ import pytorch_lightning as pl
 from transformers import BertTokenizer
 from models.multi_label_model import  MultiLabelModel
 
-def inference(pretrained_model_dir, labels, threshold = 0.8):
+def inference(pretrained_model_dir, labels, threshold = 0.9):
     trained_model = MultiLabelModel.load_from_checkpoint(
         pretrained_model_dir,
         labels = labels

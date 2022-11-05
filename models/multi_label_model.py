@@ -1,4 +1,5 @@
 import random
+import sys
 
 import torch
 import torch.nn as nn
@@ -31,11 +32,12 @@ class MultiLabelModel(pl.LightningModule):
 
         ks = 3
         self.bert = BertModel.from_pretrained('indolem/indobert-base-uncased', output_hidden_states = True)
+
         self.pre_classifier = nn.Linear(768, 768)
 
-        self.conv1 = nn.Conv2d(in_channels, out_channels, (3, embedding_dim), padding=(2, 0), groups=4)
-        self.conv2 = nn.Conv2d(in_channels, out_channels, (4, embedding_dim), padding=(3, 0), groups=4)
-        self.conv3 = nn.Conv2d(in_channels, out_channels, (5, embedding_dim), padding=(4, 0), groups=4)
+        self.conv1 = nn.Conv2d(in_channels, out_channels, (3, embedding_dim), groups=4)
+        self.conv2 = nn.Conv2d(in_channels, out_channels, (4, embedding_dim), groups=4)
+        self.conv3 = nn.Conv2d(in_channels, out_channels, (5, embedding_dim), groups=4)
 
 
         self.dropout = nn.Dropout(dropout)
@@ -43,6 +45,7 @@ class MultiLabelModel(pl.LightningModule):
         self.sigmoid = nn.Sigmoid()
 
     def forward(self, input_ids, token_type_ids, attention_mask):
+
         bert_out = self.bert(input_ids = input_ids, 
                              token_type_ids = token_type_ids, 
                              attention_mask = attention_mask)
@@ -51,6 +54,7 @@ class MultiLabelModel(pl.LightningModule):
 
         hidden_state = torch.stack(hidden_state, dim = 1)
         hidden_state = hidden_state[:, -8:]
+        # hidden state shape = batch size, 8 layer terakhir, max_length, embedding dim bert
 
         x = [
             F.relu(self.conv1(hidden_state).squeeze(3)),
@@ -62,7 +66,9 @@ class MultiLabelModel(pl.LightningModule):
             F.max_pool1d(i, i.size(2)).squeeze(2) for i in x
         ]
 
-        x = torch.cat(x, dim = 1) # 120 * (max length of tokken in sentences) 100
+        x = torch.cat(x, dim = 1) # batch size * output cnn yang di concat
+
+        
         x = self.dropout(x)
 
         logits = self.l1(x)
