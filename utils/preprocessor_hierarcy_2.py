@@ -69,12 +69,15 @@ class PreprocessorHierarcy():
         data = pd.read_csv(self.dir_dataset)
         x_input_ids, x_token_type_ids, x_attention_mask, y, y_flat = [], [], [], [], []
 
+        # Flat no label = 96
+
         for i, line in enumerate(data.values.tolist()):
             input_ids, token_type_ids, attention_mask = self.encode_text(line[0])
             
             flat_label = line[3].split(" > ")[-1]
             flat_binary = [0]*len(level_tree[3])
             flat_binary[level_tree[3].index(flat_label.lower())] = 1
+            
 
             kategori = line[3]
             hierarcy = [set([tree_level[cat.lower()]]) for cat in kategori.split(" > ")]
@@ -87,6 +90,7 @@ class PreprocessorHierarcy():
                 hierarcy_binary.append(binary)
 
             y.append(hierarcy_binary)
+            y_flat.append(flat_binary)
 
             x_input_ids.append(input_ids)
             x_token_type_ids.append(token_type_ids)
@@ -94,30 +98,31 @@ class PreprocessorHierarcy():
 
             y.append(hierarcy)
 
-        # x_input_ids = torch.tensor(x_input_ids)
-        # x_token_type_ids = torch.tensor(x_token_type_ids)
-        # x_attention_mask = torch.tensor(x_attention_mask)
-        # y = torch.tensor(y)
+        x_input_ids = torch.tensor(x_input_ids)
+        x_token_type_ids = torch.tensor(x_token_type_ids)
+        x_attention_mask = torch.tensor(x_attention_mask)
+        y = torch.tensor(y)
+        y_flat = torch.tensor(y_flat)
 
-        # tensor_dataset = TensorDataset(x_input_ids, x_token_type_ids, x_attention_mask, y)
+        tensor_dataset = TensorDataset(x_input_ids, x_token_type_ids, x_attention_mask, y, y_flat)
 
-        # train_valid_dataset, test_dataset = torch.utils.data.random_split(
-        #     tensor_dataset, [
-        #         round(len(tensor_dataset) * 0.8),
-        #         len(tensor_dataset) - round(len(tensor_dataset) * 0.8)
-        #     ]
-        # )
+        train_valid_dataset, test_dataset = torch.utils.data.random_split(
+            tensor_dataset, [
+                round(len(tensor_dataset) * 0.8),
+                len(tensor_dataset) - round(len(tensor_dataset) * 0.8)
+            ]
+        )
 
-        # train_len = round(len(train_valid_dataset) * 0.9)
-        # valid_len = len(train_valid_dataset) - round(len(train_valid_dataset) * 0.9)
+        train_len = round(len(train_valid_dataset) * 0.9)
+        valid_len = len(train_valid_dataset) - round(len(train_valid_dataset) * 0.9)
 
-        # train_dataset, valid_dataset = torch.utils.data.random_split(
-        #     train_valid_dataset, [
-        #         train_len, valid_len
-        #     ]
-        # )
+        train_dataset, valid_dataset = torch.utils.data.random_split(
+            train_valid_dataset, [
+                train_len, valid_len
+            ]
+        )
 
-        # return train_dataset, valid_dataset, test_dataset
+        return train_dataset, valid_dataset, test_dataset
 
 
 
