@@ -67,13 +67,18 @@ class PreprocessorHierarcy():
         tree_level, level_tree = self.load_tree()
 
         data = pd.read_csv(self.dir_dataset)
-        x_input_ids, x_token_type_ids, x_attention_mask, y = [], [], [], []
+        x_input_ids, x_token_type_ids, x_attention_mask, y, y_flat = [], [], [], [], []
 
         for i, line in enumerate(data.values.tolist()):
             input_ids, token_type_ids, attention_mask = self.encode_text(line[0])
             
+            flat_label = line[3].split(" > ")[-1]
+            flat_binary = [0]*len(level_tree[3])
+            flat_binary[level_tree[3].index(flat_label.lower())] = 1
+
             kategori = line[3]
             hierarcy = [set([tree_level[cat.lower()]]) for cat in kategori.split(" > ")]
+
             # Binarizer of hierarcy
             hierarcy_binary = []
             for level, cat in enumerate(kategori.split(" > "), 1):
