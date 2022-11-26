@@ -32,7 +32,7 @@ class PreprocessorHierarcy():
         return string
 
     def encode_text(self, text):
-        tkn = self.tokenizer(text = text,
+        tkn = self.tokenizers(text = text,
                              max_length = self.max_length,
                              padding = 'max_length',
                              truncation = True)

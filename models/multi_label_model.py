@@ -118,6 +118,7 @@ class MultiLabelModel(pl.LightningModule):
     def training_epoch_end(self, outputs):
         labels = []
         predictions = []
+        loss = []
         for outputs in outputs:
             for out_lbl in outputs["labels"].detach().cpu():
                 labels.append(out_lbl)
@@ -126,6 +127,10 @@ class MultiLabelModel(pl.LightningModule):
 
         labels = torch.stack(labels).int()
         predictions = torch.stack(predictions)
+
+        
+        loss_mean = torch.mean(outputs["loss"])
+        print(f"Loss Of Epoch {self.current_epoch} : {loss_mean}")
 
 
         for i, name in enumerate(self.labels):
