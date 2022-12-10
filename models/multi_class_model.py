@@ -8,6 +8,8 @@ from transformers import BertModel
 
 from sklearn.metrics import classification_report
 
+from torchmetrics import AUROC
+
 class MultiClassModel(pl.LightningModule):
     def __init__(self, n_out, dropout, lr):
         super(MultiClassModel, self).__init__()
@@ -93,28 +95,28 @@ class MultiClassModel(pl.LightningModule):
         return pred, true
     
 
-    # Tambahan
+    # # Tambahan
 
-    def training_epoch_end(self, outputs):
-        labels = []
-        predictions = []
-        for output in outputs:
-            for out_labels in output["labels"].detach().cpu():
-                labels.append(out_labels)
-            for out_predictions in output["predictions"].detach().cpu():
-                predictions.append(out_predictions)
+    # def training_epoch_end(self, outputs):
+    #     labels = []
+    #     predictions = []
+    #     for output in outputs:
+    #         for out_labels in output["labels"].detach().cpu():
+    #             labels.append(out_labels)
+    #         for out_predictions in output["predictions"].detach().cpu():
+    #             predictions.append(out_predictions)
 
-        labels = torch.stack(labels).int()
-        predictions = torch.stack(predictions)
+    #     labels = torch.stack(labels).int()
+    #     predictions = torch.stack(predictions)
 
-        # results = []
+    #     # results = []
 
-        for i, name in enumerate(self.labels):
-            auroc = AUROC(num_classes=len(self.labels))
-            class_roc_auc = auroc(predictions[:, i], labels[:, i])
-            # results.append(class_roc_auc)
-            print(f"{name} \t: {class_roc_auc}")
+    #     for i, name in enumerate(self.labels):
+    #         auroc = AUROC(num_classes=len(self.labels))
+    #         class_roc_auc = auroc(predictions[:, i], labels[:, i])
+    #         # results.append(class_roc_auc)
+    #         print(f"{name} \t: {class_roc_auc}")
 
-            self.logger.experiment.add_scalar(f"{name}_roc_auc/Train", class_roc_auc, self.current_epoch)
+    #         self.logger.experiment.add_scalar(f"{name}_roc_auc/Train", class_roc_auc, self.current_epoch)
 
     

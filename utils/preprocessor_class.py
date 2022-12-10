@@ -140,12 +140,19 @@ class PreprocessorClass(pl.LightningDataModule):
             test_data = torch.load(f"{self.preprocessed_dir}/test.pt")
 
         return train_data, valid_data, test_data
+
+    def preprocessor_hie(self, layer):
+        pass
     
     def setup(self, stage = None):
         train_data, valid_data, test_data = self.preprocessor()
         if stage == "fit":
             self.train_data = train_data
             self.valid_data = valid_data
+
+        elif stage == "fit_hie":
+            pass
+            
         elif stage == "predict":
             self.test_data = test_data
 

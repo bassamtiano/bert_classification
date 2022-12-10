@@ -23,6 +23,7 @@ if __name__ == '__main__':
     trainer = pl.Trainer(
         gpus = 1,
         max_epochs = 10,
+        
         default_root_dir = "./checkpoints/class",
         logger = logger
     )
