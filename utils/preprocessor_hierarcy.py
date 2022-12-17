@@ -128,14 +128,10 @@ class PreprocessorHierarcy():
         return train_data, test_data
 
 
-
-
-    def load_data(self):
+    def preprocess_train_dataset(self, train_dataset):
         # tree leve untuk mengetahui label label yang ada di level tertentu
         # level tree untuk mengetahui level dari label
         tree_level, level_tree, parent2child = self.load_tree()
-
-        train_csv_data, test_csv_data = self.split_dataset()
 
         x_input_ids, y_flat = [], []
 
@@ -144,7 +140,7 @@ class PreprocessorHierarcy():
         overall_dataset = [ [] for i in range(len(parentid))]
         
         # Hierarcy vs flat
-        for i, line in tqdm(enumerate(train_csv_data.values.tolist())):
+        for i, line in tqdm(enumerate(train_dataset.values.tolist())):
             input_ids, token_type_ids, attention_mask = self.encode_text(line[0])
             
             flat_label = line[3].split(" > ")[-1]
@@ -206,6 +202,12 @@ class PreprocessorHierarcy():
             pickle.dump(datasets, wh, protocol=pickle.HIGHEST_PROTOCOL)
 
         return datasets
+
+    def load_data(self):
+        train_csv_data, test_csv_data = self.split_dataset()
+
+        train_datasets = self.preprocess_train_dataset(train_csv_data)
+        
 
     def splitting_data(self, x_input_ids, y):
         x_input_ids = torch.tensor(x_input_ids)
