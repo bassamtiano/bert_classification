@@ -19,7 +19,14 @@ from transformers import BertTokenizer
 
 class PreprocessorClass(pl.LightningDataModule):
 
-    def __init__(self, max_length, preprocessed_dir, batch_size):
+    def __init__(self, 
+                 max_length, 
+                 preprocessed_dir, 
+                 train_data_dir,
+                 test_data_dir,
+                 batch_size):
+        super(PreprocessorClass, self).__init__()
+
         self.label2id = {
             'bola': 0,
             'news': 1,
@@ -27,7 +34,9 @@ class PreprocessorClass(pl.LightningDataModule):
             'tekno': 3,
             'otomotif': 4
         }
-        super(PreprocessorClass, self).__init__()
+
+        self.train_data_dir = train_data_dir
+        self.test_data_dir = test_data_dir
 
         self.max_length = max_length
         self.preprocessed_dir = preprocessed_dir
@@ -59,10 +68,10 @@ class PreprocessorClass(pl.LightningDataModule):
         return self.stemmer.stem(string)
 
     def load_data(self,):
-        with open("data/multiclass/training.res", "rb") as tdr:
+        with open(self.train_data_dir, "rb") as tdr:
             train_pkl = pickle.load(tdr)
             train = pd.DataFrame({'title': train_pkl[0], 'label': train_pkl[1]})
-        with open("data/multiclass/testing.res", "rb") as tsdr:
+        with open(self.test_data_dir, "rb") as tsdr:
             test_pkl = pickle.load(tsdr)
             test = pd.DataFrame({'title': test_pkl[0], 'label': test_pkl[1]})
         
