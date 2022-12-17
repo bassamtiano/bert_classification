@@ -193,16 +193,12 @@ class PreprocessorHierarcy():
             o_input_ids = od["input_ids"]
             o_y = od["y"]
 
-
-
-
-
-            train_dataset, valid_dataset, test_dataset = self.splitting_data(o_input_ids, o_y)
-            hierarcy_dataset.append([train_dataset, valid_dataset, test_dataset])
+            train_dataset, valid_dataset = self.splitting_data(o_input_ids, o_y)
+            hierarcy_dataset.append([train_dataset, valid_dataset])
         # print(hierarcy_dataset)
         # sys.exit()
-        flat_train_dataset, flat_valid_dataset, flat_test_dataset = self.splitting_data(x_input_ids, y_flat)
-        flat_dataset = [flat_train_dataset, flat_valid_dataset, flat_test_dataset]
+        flat_train_dataset, flat_valid_dataset = self.splitting_data(x_input_ids, y_flat)
+        flat_dataset = [flat_train_dataset, flat_valid_dataset]
 
         datasets = {"flat": flat_dataset, "hierarcy": hierarcy_dataset}
         print("saving preprocessed dataset")
@@ -217,23 +213,23 @@ class PreprocessorHierarcy():
 
         tensor_dataset = TensorDataset(x_input_ids, y)
 
-        train_valid_dataset, test_dataset = torch.utils.data.random_split(
-            tensor_dataset, [
-                round(len(tensor_dataset) * 0.8),
-                len(tensor_dataset) - round(len(tensor_dataset) * 0.8)
-            ]
-        )
+        # train_valid_dataset, test_dataset = torch.utils.data.random_split(
+        #     tensor_dataset, [
+        #         round(len(tensor_dataset) * 0.8),
+        #         len(tensor_dataset) - round(len(tensor_dataset) * 0.8)
+        #     ]
+        # )
 
-        train_len = round(len(train_valid_dataset) * 0.9)
-        valid_len = len(train_valid_dataset) - round(len(train_valid_dataset) * 0.9)
+        train_len = round(len(tensor_dataset) * 0.9)
+        valid_len = len(tensor_dataset) - train_len
 
         train_dataset, valid_dataset = torch.utils.data.random_split(
-            train_valid_dataset, [
+            tensor_dataset, [
                 train_len, valid_len
             ]
         )
 
-        return train_dataset, valid_dataset, test_dataset
+        return train_dataset, valid_dataset
 
     def preprocessor(self):
         # tree_level, level_tree = self.load_tree()
