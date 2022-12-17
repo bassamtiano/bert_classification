@@ -135,9 +135,7 @@ class PreprocessorHierarcy():
         # level tree untuk mengetahui level dari label
         tree_level, level_tree, parent2child = self.load_tree()
 
-        train_data, test_data = self.split_dataset()
-
-        sys.exit()
+        train_csv_data, test_csv_data = self.split_dataset()
 
         x_input_ids, y_flat = [], []
 
@@ -146,7 +144,7 @@ class PreprocessorHierarcy():
         overall_dataset = [ [] for i in range(len(parentid))]
         
         # Hierarcy vs flat
-        for i, line in tqdm(enumerate(data.values.tolist())):
+        for i, line in tqdm(enumerate(train_csv_data.values.tolist())):
             input_ids, token_type_ids, attention_mask = self.encode_text(line[0])
             
             flat_label = line[3].split(" > ")[-1]
@@ -180,17 +178,23 @@ class PreprocessorHierarcy():
                 overall_dataset[i_parent]["y"].append(binary_member)
                 
 
-            # if i > 10:
+            # if i > 10 :
             #     break
+           
 
             y_flat.append(flat_binary)
             x_input_ids.append(input_ids)
         
         
+        
         hierarcy_dataset = []
         for i, od in enumerate(overall_dataset):
+            
             o_input_ids = od["input_ids"]
             o_y = od["y"]
+
+
+
 
 
             train_dataset, valid_dataset, test_dataset = self.splitting_data(o_input_ids, o_y)

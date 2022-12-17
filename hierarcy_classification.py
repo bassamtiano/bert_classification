@@ -13,7 +13,7 @@ def collect_parser():
     parser.add_argument("--batch_size", type=int, default=100)
     parser.add_argument("--max_epochs", type=int, default=10)
 
-    parser.add_argument("--tree_dir", type=str, default="data/hierarcy/tree/labels_hierarchy.tree")
+    parser.add_argument("--tree_dir", type=str, default="data/hierarcy/tree/tokopedia.tree")
     parser.add_argument("--dataset_dir", type=str, default="./data/hierarcy/product_tokopedia.csv")
     parser.add_argument("--train_dataset_dir", type=str, default="./data/hierarcy/tokopedia_train.csv")
     parser.add_argument("--test_dataset_dir", type=str, default="./data/hierarcy/tokopedia_test.csv")
@@ -35,4 +35,4 @@ if __name__ == '__main__':
                               test_dataset_dir = args.test_dataset_dir,
                               dir_dataset = args.dataset_dir)
 
-    dm.load_data()
+    dm.preprocessor()
