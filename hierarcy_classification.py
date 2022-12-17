@@ -1,3 +1,5 @@
+import sys
+import argparse
 from utils.preprocessor_hierarcy import PreprocessorHierarcy
 
 def collect_parser():
@@ -11,9 +13,8 @@ def collect_parser():
     parser.add_argument("--batch_size", type=int, default=100)
     parser.add_argument("--max_epochs", type=int, default=10)
 
-    parser.add_argument("--tree_dir", type=str, default="data/hierarcy/tree/tokopedia.tree")
-    parser.add_argument("--train_data_dir", type=str, default="data/hierarcy/train.res")
-    parser.add_argument("--test_data_dir", type=str, default="data/hierarcy/testing.res")
+    parser.add_argument("--tree_dir", type=str, default="data/hierarcy/tree/labels_hierarchy.tree")
+    parser.add_argument("--dataset_dir", type=str, default="./data/hierarcy/product_tokopedia.csv")
     parser.add_argument("--preprocessed_dir", type=str, default="data/multiclass/preprocessed")
 
     parser.add_argument("--n_out", type=int, default=5)
@@ -28,7 +29,6 @@ if __name__ == '__main__':
     
     dm = PreprocessorHierarcy(max_length = 100, 
                               dir_tree = args.tree_dir,
-                              dir_dataset = "./data/hierarcy/product_tokopedia.csv")
+                              dir_dataset = args.dataset_dir)
 
-    dm.preprocessor()
-
+    dm.load_data()

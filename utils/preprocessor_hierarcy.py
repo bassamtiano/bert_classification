@@ -96,12 +96,33 @@ class PreprocessorHierarcy():
 
         return tkn['input_ids'], tkn['token_type_ids'], tkn['attention_mask']
 
+    def split_dataset(self):
+        data = pd.read_csv(self.dir_dataset)
+        data = data.sample(frac = 1)
+
+        data_len = data.shape[0]
+        train_len : int = int(data_len * 0.7)
+
+        train_data = data.iloc[:train_len, :]
+        test_data = data.iloc[train_len:, :]
+        
+        # Cek Label balance / tidak
+        print(train_data['leaf'].value_counts())
+        print("=" * 30)
+        print(test_data['leaf'].value_counts())
+        print(train_data.shape)
+        print(test_data.shape)
+
+
     def load_data(self):
         # tree leve untuk mengetahui label label yang ada di level tertentu
         # level tree untuk mengetahui level dari label
         tree_level, level_tree, parent2child = self.load_tree()
 
-        data = pd.read_csv(self.dir_dataset)
+        self.split_dataset()
+
+        sys.exit()
+
         x_input_ids, y_flat = [], []
 
         # Flat no label = 96

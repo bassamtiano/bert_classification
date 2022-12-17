@@ -17,6 +17,8 @@ class MultiClassModel(pl.LightningModule):
         torch.manual_seed(1)
         random.seed(43)
 
+        
+
         self.bert = BertModel.from_pretrained('indolem/indobert-base-uncased')
         self.pre_classifier = nn.Linear(768, 768)
         self.dropout = nn.Dropout(dropout)

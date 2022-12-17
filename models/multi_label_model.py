@@ -119,10 +119,10 @@ class MultiLabelModel(pl.LightningModule):
         labels = []
         predictions = []
         loss = []
-        for outputs in outputs:
-            for out_lbl in outputs["labels"].detach().cpu():
+        for output in outputs:
+            for out_lbl in output["labels"].detach().cpu():
                 labels.append(out_lbl)
-            for out_pred in outputs["predictions"].detach().cpu():
+            for out_pred in output["predictions"].detach().cpu():
                 predictions.append(out_pred)
 
         labels = torch.stack(labels).int()
