@@ -18,11 +18,16 @@ class PreprocessorHierarcy():
     def __init__(self, 
                  max_length,
                  dir_dataset,
+                 train_dataset_dir,
+                 test_dataset_dir,
                  dir_tree, ) -> None:
         super(PreprocessorHierarcy, self).__init__
 
         self.dir_dataset = dir_dataset
         self.dir_tree = dir_tree
+
+        self.train_dataset_dir = train_dataset_dir
+        self.test_dataset_dir = test_dataset_dir
 
         self.tokenizers = BertTokenizer.from_pretrained('indolem/indobert-base-uncased')
         self.max_length = max_length
@@ -97,21 +102,32 @@ class PreprocessorHierarcy():
         return tkn['input_ids'], tkn['token_type_ids'], tkn['attention_mask']
 
     def split_dataset(self):
-        data = pd.read_csv(self.dir_dataset)
-        data = data.sample(frac = 1)
+        if os.path.exists(self.train_dataset_dir) and os.path.exists(self.test_dataset_dir):
+            print("load split csv dataset")
+            train_data = pd.read_csv(self.train_dataset_dir)
+            test_data = pd.read_csv(self.test_dataset_dir)
+        else: 
+            print("create split csv dataset")
+            data = pd.read_csv(self.dir_dataset)
+            data = data.sample(frac = 1)
 
-        data_len = data.shape[0]
-        train_len : int = int(data_len * 0.7)
+            data_len = data.shape[0]
+            train_len : int = int(data_len * 0.7)
 
-        train_data = data.iloc[:train_len, :]
-        test_data = data.iloc[train_len:, :]
-        
-        # Cek Label balance / tidak
-        print(train_data['leaf'].value_counts())
-        print("=" * 30)
-        print(test_data['leaf'].value_counts())
-        print(train_data.shape)
-        print(test_data.shape)
+            train_data = data.iloc[:train_len, :]
+            test_data = data.iloc[train_len:, :]
+            
+            # Cek Label balance / tidak
+            print(len(train_data['leaf'].value_counts()))
+            print("=" * 30)
+            print(len(test_data['leaf'].value_counts()))
+            
+            train_data = train_data.to_csv(self.train_dataset_dir, index = False)
+            test_data = test_data.to_csv(self.test_dataset_dir, index = False)
+
+        return train_data, test_data
+
+
 
 
     def load_data(self):
@@ -119,7 +135,7 @@ class PreprocessorHierarcy():
         # level tree untuk mengetahui level dari label
         tree_level, level_tree, parent2child = self.load_tree()
 
-        self.split_dataset()
+        train_data, test_data = self.split_dataset()
 
         sys.exit()
 
