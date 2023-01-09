@@ -18,6 +18,8 @@ class HierarchyModel(pl.LightningModule):
                  n_out,
                  embedding_dim) -> None:
         super(HierarchyModel, self).__init__()
+
+        pl.seed_everything(1)
         
         self.conv1 = nn.Conv2d(in_channels, out_channels, (3, embedding_dim), groups=4)
         self.conv2 = nn.Conv2d(in_channels, out_channels, (4, embedding_dim), groups=4)
@@ -26,8 +28,6 @@ class HierarchyModel(pl.LightningModule):
         self.lr = lr
         self.dropout = nn.Dropout(dropout)
         self.classifier = nn.Linear(embedding_dim, n_out)
-
-
 
     def forward(self,):
         

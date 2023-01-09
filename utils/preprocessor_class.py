@@ -150,6 +150,38 @@ class PreprocessorClass(pl.LightningDataModule):
 
         return train_data, valid_data, test_data
 
+
+    def preprocessor_manual(self):
+        train_data, valid_data, test_data = self.preprocessor()
+
+
+        train_sampler = RandomSampler(train_data)
+        valid_sampler = SequentialSampler(valid_data)
+        test_sampler = SequentialSampler(test_data)
+
+        train_dataset = DataLoader(
+            dataset = train_data,
+            batch_size = self.batch_size,
+            sampler = train_sampler,
+            num_workers = 3
+        )
+
+        valid_dataset = DataLoader(
+            dataset = valid_data,
+            batch_size = self.batch_size,
+            sampler = valid_sampler,
+            num_workers = 3
+        )
+
+        test_dataset = DataLoader(
+            dataset = test_data,
+            batch_size = self.batch_size,
+            sampler = test_sampler,
+            num_workers = 3
+        )
+
+        return train_dataset, valid_dataset, test_dataset
+
     def preprocessor_hie(self, layer):
         pass
     

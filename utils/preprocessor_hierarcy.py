@@ -128,21 +128,25 @@ class PreprocessorHierarcy():
         return train_data, test_data
 
     def preprocess_test_dataset(self, test_dataset):
+        print("test dataset")
+        
         # tree leve untuk mengetahui label label yang ada di level tertentu
         # level tree untuk mengetahui level dari label
         tree_level, level_tree, parent2child = self.load_tree()
-
+        
         x_input_ids, y_flat = [], []
 
         # Flat no label = 96
         parentid = {p: i for i, p in enumerate(parent2child.keys())}
-        overall_dataset = [ [] for i in range(len(parentid))]
-        
+        # overall_dataset = [ [] for i in range(len(parentid))]
+        all_input_ids = []
+        all_y = []
+        y_flat = []
+
         # Hierarcy vs flat
         for i, line in tqdm(enumerate(test_dataset.values.tolist())):
-            input_ids, token_type_ids, attention_mask = self.encode_text(line[0])
+            input_ids, _, _ = self.encode_text(line[0])
             
-
             flat_label = line[3].split(" > ")[-1]
 
             flat_binary = [0] * len(level_tree[3])
@@ -153,6 +157,7 @@ class PreprocessorHierarcy():
             # hierarcy = [set([tree_level[cat.lower()]]) for cat in kategori.split(" > ")]
 
             # Pemisahan hierarcy data
+            y_binary = []
             for i_f, cat in enumerate(kategori[:-1]):
                 
                 child = kategori[i_f + 1].lower()
@@ -160,27 +165,28 @@ class PreprocessorHierarcy():
                 member = list(member)
 
                 i_child = member.index(child)
-                binary_member = [0] * len(member)
+                # binary_member = [0] * len(member)
+                binary_member = [0] * 13
                 binary_member[i_child] = 1
+                y_binary.append(binary_member)
                 
                 # Buat ambil id parent di overall dataset
-                i_parent = parentid[cat.lower()]
+                # i_parent = parentid[cat.lower()]
 
-                if "input_ids" not in overall_dataset[i_parent]:
-                    print("inisialisasi")
-                    overall_dataset[i_parent] = {"input_ids" : [], "y": []}
+                # if "input_ids" not in overall_dataset[i_parent]:
+                #     print("inisialisasi")
+                #     overall_dataset[i_parent] = {"input_ids" : [], "y": []}
                 
-                overall_dataset[i_parent]["input_ids"].append(input_ids)
-                overall_dataset[i_parent]["y"].append(binary_member)
-                
+                # overall_dataset[i_parent]["input_ids"].append(input_ids)
+                # overall_dataset[i_parent]["y"].append(binary_member)
 
-            # if i > 10 :
-            #     break
-           
-
+            all_input_ids.append(input_ids)
+            all_y.append(binary_member)
             y_flat.append(flat_binary)
-            x_input_ids.append(input_ids)
+            
+        test_dataset = TensorDataset(all_input_ids, all_y, y_flat)
 
+        return test_dataset
 
     def preprocess_train_dataset(self, train_dataset):
         # tree leve untuk mengetahui label label yang ada di level tertentu
@@ -260,7 +266,8 @@ class PreprocessorHierarcy():
     def load_data(self):
         train_csv_data, test_csv_data = self.split_dataset()
 
-        train_datasets = self.preprocess_train_dataset(train_csv_data)
+        # train_datasets = self.preprocess_train_dataset(train_csv_data)
+        train_datasets =[]
         test_datasets = self.preprocess_test_dataset(test_csv_data)
         return train_datasets, test_datasets
         
