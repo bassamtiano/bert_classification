@@ -17,20 +17,30 @@ from transformers import BertTokenizer
 class PreprocessorHierarcy():
     def __init__(self, 
                  max_length,
+                 batch_size,
                  dir_dataset,
                  train_dataset_dir,
                  test_dataset_dir,
-                 dir_tree, ) -> None:
+                 preprocessed_dir,
+                 tree_helper,
+                 split_data_section) -> None:
         super(PreprocessorHierarcy, self).__init__
 
+        self.max_length = max_length
+        self.batch_size = batch_size
+
         self.dir_dataset = dir_dataset
-        self.dir_tree = dir_tree
+        
+        self.tree_helper = tree_helper
 
         self.train_dataset_dir = train_dataset_dir
         self.test_dataset_dir = test_dataset_dir
+        self.preprocessed_dir = preprocessed_dir
+
+        self.split_data_section = split_data_section
 
         self.tokenizers = BertTokenizer.from_pretrained('indolem/indobert-base-uncased')
-        self.max_length = max_length
+        
 
     def clean_str(self, string):
         string = string.lower()
@@ -52,47 +62,6 @@ class PreprocessorHierarcy():
 
         return string
 
-    def load_tree(self):
-        tree_level = {}
-        level_tree = {}
-
-        parent2child = {}
-
-        with open(self.dir_tree, "r") as dr:
-            for i, line in tqdm(enumerate(dr)):
-                line = line[:-1].lower()
-                category = line.split(" > ")[-1]
-                category_all = line.split(" > ")
-
-
-                # if len(category_all) > 1:
-                #     for i_cat, cat in enumerate(category_all):
-                #         if i_cat > 0:
-                #             if category_all[i_cat - 1] not in parent2child:
-                #                 parent2child[category_all[i_cat - 1]] = set()
-                #             else:
-                #                 parent2child[category_all[i_cat - 1]].add(cat)
-
-                for i, cat in enumerate(category_all):
-                    if i > 0:
-                        parent = category_all[i - 1]
-                        try:
-                            parent2child[parent].add(cat)
-                        except:
-                            parent2child[parent] = set()
-                            parent2child[parent].add(cat)
-                            
-                
-                
-                level = len(line.split(" > "))
-                if category not in tree_level:
-                    tree_level[category] = level
-                    if level not in level_tree:
-                        level_tree[level] = []
-                    level_tree[level] += [category]
-
-        return tree_level, level_tree, parent2child
-    
     def encode_text(self, text):
         tkn = self.tokenizers(text = text,
                                  max_length = self.max_length,
@@ -127,150 +96,34 @@ class PreprocessorHierarcy():
 
         return train_data, test_data
 
-    def preprocess_test_dataset(self, test_dataset):
-        print("test dataset")
-        
-        # tree leve untuk mengetahui label label yang ada di level tertentu
-        # level tree untuk mengetahui level dari label
-        tree_level, level_tree, parent2child = self.load_tree()
-        
-        x_input_ids, y_flat = [], []
+    def split_by_hierarchy_section(self, 
+                                   kategori, 
+                                   parent_id,
+                                   parent2child,
+                                   overall_dataset, 
+                                   input_ids):
+        for i_f, cat in enumerate(kategori[:-1]):
+                
+            child = kategori[i_f + 1].lower()
+            member = parent2child[cat.lower()]
+            member = list(member)
 
-        # Flat no label = 96
-        parentid = {p: i for i, p in enumerate(parent2child.keys())}
-        # overall_dataset = [ [] for i in range(len(parentid))]
-        all_input_ids = []
-        all_y = []
-        y_flat = []
-
-        # Hierarcy vs flat
-        for i, line in tqdm(enumerate(test_dataset.values.tolist())):
-            input_ids, _, _ = self.encode_text(line[0])
+            i_child = member.index(child)
+            binary_member = [0] * len(member)
+            binary_member[i_child] = 1
             
-            flat_label = line[3].split(" > ")[-1]
+            # Buat ambil id parent di overall dataset
+            i_parent = parent_id[cat.lower()]
 
-            flat_binary = [0] * len(level_tree[3])
-            flat_binary[level_tree[3].index(flat_label.lower())] = 1
-
-            # Ingin tahu level ke berapa dari si label
-            kategori = line[3].split(" > ")
-            # hierarcy = [set([tree_level[cat.lower()]]) for cat in kategori.split(" > ")]
-
-            # Pemisahan hierarcy data
-            y_binary = []
-            for i_f, cat in enumerate(kategori[:-1]):
-                
-                child = kategori[i_f + 1].lower()
-                member = parent2child[cat.lower()]
-                member = list(member)
-
-                i_child = member.index(child)
-                # binary_member = [0] * len(member)
-                binary_member = [0] * 13
-                binary_member[i_child] = 1
-                y_binary.append(binary_member)
-                
-                # Buat ambil id parent di overall dataset
-                # i_parent = parentid[cat.lower()]
-
-                # if "input_ids" not in overall_dataset[i_parent]:
-                #     print("inisialisasi")
-                #     overall_dataset[i_parent] = {"input_ids" : [], "y": []}
-                
-                # overall_dataset[i_parent]["input_ids"].append(input_ids)
-                # overall_dataset[i_parent]["y"].append(binary_member)
-
-            all_input_ids.append(input_ids)
-            all_y.append(binary_member)
-            y_flat.append(flat_binary)
+            if "input_ids" not in overall_dataset[i_parent]:
+                print("inisialisasi")
+                overall_dataset[i_parent] = {"input_ids" : [], "y": []}
             
-        test_dataset = TensorDataset(all_input_ids, all_y, y_flat)
+            overall_dataset[i_parent]["input_ids"].append(input_ids)
+            overall_dataset[i_parent]["y"].append(binary_member)
 
-        return test_dataset
+        return overall_dataset
 
-    def preprocess_train_dataset(self, train_dataset):
-        # tree leve untuk mengetahui label label yang ada di level tertentu
-        # level tree untuk mengetahui level dari label
-        tree_level, level_tree, parent2child = self.load_tree()
-
-        x_input_ids, y_flat = [], []
-
-        # Flat no label = 96
-        parentid = {p: i for i, p in enumerate(parent2child.keys())}
-        overall_dataset = [ [] for i in range(len(parentid))]
-        
-        # Hierarcy vs flat
-        for i, line in tqdm(enumerate(train_dataset.values.tolist())):
-            input_ids, token_type_ids, attention_mask = self.encode_text(line[0])
-            
-            flat_label = line[3].split(" > ")[-1]
-
-            flat_binary = [0] * len(level_tree[3])
-            flat_binary[level_tree[3].index(flat_label.lower())] = 1
-
-            # Ingin tahu level ke berapa dari si label
-            kategori = line[3].split(" > ")
-            # hierarcy = [set([tree_level[cat.lower()]]) for cat in kategori.split(" > ")]
-
-            # Pemisahan hierarcy data
-            for i_f, cat in enumerate(kategori[:-1]):
-                
-                child = kategori[i_f + 1].lower()
-                member = parent2child[cat.lower()]
-                member = list(member)
-
-                i_child = member.index(child)
-                binary_member = [0] * len(member)
-                binary_member[i_child] = 1
-                
-                # Buat ambil id parent di overall dataset
-                i_parent = parentid[cat.lower()]
-
-                if "input_ids" not in overall_dataset[i_parent]:
-                    print("inisialisasi")
-                    overall_dataset[i_parent] = {"input_ids" : [], "y": []}
-                
-                overall_dataset[i_parent]["input_ids"].append(input_ids)
-                overall_dataset[i_parent]["y"].append(binary_member)
-                
-
-            # if i > 10 :
-            #     break
-           
-
-            y_flat.append(flat_binary)
-            x_input_ids.append(input_ids)
-        
-        
-        
-        hierarcy_dataset = []
-        for i, od in enumerate(overall_dataset):
-            
-            o_input_ids = od["input_ids"]
-            o_y = od["y"]
-
-            train_dataset, valid_dataset = self.splitting_data(o_input_ids, o_y)
-            hierarcy_dataset.append([train_dataset, valid_dataset])
-        # print(hierarcy_dataset)
-        # sys.exit()
-        flat_train_dataset, flat_valid_dataset = self.splitting_data(x_input_ids, y_flat)
-        flat_dataset = [flat_train_dataset, flat_valid_dataset]
-
-        datasets = {"flat": flat_dataset, "hierarcy": hierarcy_dataset}
-        print("saving preprocessed dataset")
-        with open("data/hierarcy/preprocessed/preprocessed_all.pkl", "wb") as wh:
-            pickle.dump(datasets, wh, protocol=pickle.HIGHEST_PROTOCOL)
-
-        return datasets
-
-    def load_data(self):
-        train_csv_data, test_csv_data = self.split_dataset()
-
-        # train_datasets = self.preprocess_train_dataset(train_csv_data)
-        train_datasets =[]
-        test_datasets = self.preprocess_test_dataset(test_csv_data)
-        return train_datasets, test_datasets
-        
     def splitting_data(self, x_input_ids, y):
         x_input_ids = torch.tensor(x_input_ids)
         y = torch.tensor(y)
@@ -295,17 +148,169 @@ class PreprocessorHierarcy():
 
         return train_dataset, valid_dataset
 
-    def preprocessor(self):
-        if not os.path.exists("data/hierarcy/preprocessed/preprocessed_all.pkl"):
-            print("Preprocessing dataset")
-            train_datasets, test_datasets = self.load_data()
+    def preprocess_dataset(self, train_dataset, level, train_status = "train"):
+        # tree leve untuk mengetahui label label yang ada di level tertentu
+        # level tree untuk mengetahui level dari label
+        tree_level, level_tree, parent2child, level_tree_item, level_tree_ids = self.tree_helper.load_tree()
+        
+        x_input_ids, y_all = [], []
+
+        # Flat no label = 96
+        parent_id = {p: i for i, p in enumerate(parent2child.keys())}
+        overall_dataset = [ [] for i in range(len(parent_id))]
+        
+        # Hierarcy vs flat
+        progress_preprocessor_train = tqdm(train_dataset.values.tolist())
+
+        for i, line in enumerate(progress_preprocessor_train):
+            input_ids, _, _ = self.encode_text(line[0])
+            
+            # hierarcy = [set([tree_level[cat.lower()]]) for cat in kategori.split(" > ")]
+
+            # Pemisahan hierarcy data
+            if level == "section":
+                # Bagian Pemisahan per section of hierarcy
+
+                # Ingin tahu level ke berapa dari si label
+                kategori = line[3].split(" > ")
+
+                overall_dataset = self.split_by_hierarchy_section(kategori = kategori,
+                                                                  parent_id = parent_id,
+                                                                  parent2child = parent2child,
+                                                                  overall_dataset = overall_dataset,
+                                                                  input_ids = input_ids)
+            elif level == "flat":
+                flat_label = line[3].split(" > ")[-1]
+
+                flat_binary = [0] * len(level_tree[3])
+                flat_binary[level_tree[3].index(flat_label.lower())] = 1
+
+                y_all.append(flat_binary)
+            
+            else :
+                # Split based on section
+                kat_level = line[3].split(" > ")[level - 1].lower()
+                ids = level_tree_ids[level]
+                
+                y_ids = ids[kat_level]
+                y = [0] * len(ids)
+                y[y_ids] = 1
+
+                y_all.append(y)
+
+
+            x_input_ids.append(input_ids)
+        
+        file_name = ""
+
+        if level == "section":
+            file_name = "preprocessed_training_section.pkl"
+
+            dataset = []
+            for i, od in enumerate(overall_dataset):
+                
+                o_input_ids = od["input_ids"]
+                o_y = od["y"]
+
+
+                train_dataset, valid_dataset = self.splitting_data(o_input_ids, o_y)
+                dataset.append([train_dataset, valid_dataset])
+        
+        elif level == "flat":
+            if train_status == "train":
+                file_name = "preprocessed_train_flat.pkl"
+                flat_train_dataset, flat_valid_dataset = self.splitting_data(x_input_ids, y_all)
+                dataset = [flat_train_dataset, flat_valid_dataset]
+            else:
+                file_name = "preprocessed_test_flat.pkl"
+                x_input_ids = torch.tensor(x_input_ids)
+                y_all = torch.tensor(y_all)
+
+                dataset = TensorDataset(x_input_ids, y_all)
+
+
         else:
-            print("Load preprocessed dataset")
-            with open("data/hierarcy/preprocessed/preprocessed_all.pkl", "rb") as f:
-                train_datasets, test_datasets = pickle.load(f)
-                print(len(train_datasets["hierarcy"]))
-                print(len(train_datasets["hierarcy"]))
-                print(len(train_datasets["hierarcy"][1]))
-                print(train_datasets["hierarcy"][1])
+            if train_status == "train":
+                file_name = "preprocessed_train_" + str(level) + ".pkl"
+                level_train_dataset, level_valid_dataset = self.splitting_data(x_input_ids, y_all)
+                dataset = [level_train_dataset, level_valid_dataset]
+            else:
+                file_name = "preprocessed_test_" + str(level) + ".pkl"
+                x_input_ids = torch.tensor(x_input_ids)
+                y_all = torch.tensor(y_all)
+
+                dataset = TensorDataset(x_input_ids, y_all)
 
 
+        with open(self.preprocessed_dir + file_name, "wb") as wh:
+            pickle.dump(dataset, wh, protocol=pickle.HIGHEST_PROTOCOL)
+
+        return dataset
+
+    def preprocessor(self, level, train_status):
+        
+        # if os.path.exists(self.preprocessed_dir + "preprocessed_" + train_status + "_" + str(level) + ".pkl"):
+        #     if train_status == "train":
+        #         print("load preprocessed dataset " + str(level))
+        #         with open(self.preprocessed_dir + "preprocessed_" + train_status + "_" + str(level) + ".pkl", "rb") as r_h:
+        #             train_datasets, val_dataset = pickle.load(r_h)
+        #     else:
+        #         with open(self.preprocessed_dir + "preprocessed_" + train_status + "_" + str(level) + ".pkl", "rb") as r_h:
+        #             test_datasets = pickle.load(r_h)
+        # else:
+        #     print("create preprocessed dataset " + str(level))
+        #     train_csv_data, test_csv_data = self.split_dataset()
+        #     if train_status == "train":
+        #         train_datasets, val_dataset = self.preprocess_dataset(train_csv_data, level, train_status = train_status)
+        #     else:
+        #         test_datasets = self.preprocess_dataset(test_csv_data, level, train_status = train_status)
+
+        
+
+        if train_status == "train":
+            if os.path.exists(self.preprocessed_dir + "preprocessed_" + train_status + "_" + str(level) + ".pkl"):
+                print("load preprocessed dataset " + train_status + " " + str(level))
+                with open(self.preprocessed_dir + "preprocessed_" + train_status + "_" + str(level) + ".pkl", "rb") as r_h:
+                    train_datasets, val_datasets = pickle.load(r_h)
+            else:
+                print("create preprocessed dataset " + train_status + " " + str(level))
+                train_csv_data, _ = self.split_dataset()
+                train_datasets, val_datasets = self.preprocess_dataset(train_csv_data, level, train_status = train_status)
+            
+            train_sampler = RandomSampler(train_datasets)
+            val_sampler = RandomSampler(val_datasets)
+
+            train_dataloader = DataLoader(dataset = train_datasets,
+                                          batch_size = self.batch_size,
+                                          sampler = train_sampler,
+                                          num_workers = 3)
+
+            val_dataloader = DataLoader(dataset = val_datasets,
+                                        batch_size = self.batch_size,
+                                        sampler = val_sampler,
+                                        num_workers = 3)
+
+            return train_dataloader, val_dataloader
+
+        else:
+            if os.path.exists(self.preprocessed_dir + "preprocessed_" + train_status + "_" + str(level) + ".pkl"):
+                print("load preprocessed dataset " + train_status + " " + str(level))
+                with open(self.preprocessed_dir + "preprocessed_" + train_status + "_" + str(level) + ".pkl", "rb") as r_h:
+                    test_datasets = pickle.load(r_h)
+                
+            else:
+                _, test_csv_data = self.split_dataset()
+                print("create preprocessed dataset " + train_status + " " + str(level))
+                test_datasets = self.preprocess_dataset(test_csv_data, level, train_status = train_status)
+
+            test_sampler = RandomSampler(test_datasets)
+
+            test_dataloader = DataLoader(dataset = test_datasets,
+                                         batch_size = self.batch_size,
+                                         sampler = test_sampler,
+                                         num_workers = 3)
+
+            return test_dataloader
+        
+        
+    
